@@ -29,11 +29,12 @@ jobs:
           fi
           echo "TAG=$TAG" | tee -a "${GITHUB_ENV}"
           VERSION="${TAG}"
-          echo "APPLICATION_NAME=lambda-test" | tee -a "${GITHUB_ENV}"
+          APPLICATION_NAME=conversation-resolution-metric"
+          echo "APPLICATION_NAME=${APPLICATION_NAME}" | tee -a "${GITHUB_ENV}"
           echo "VERSION=${VERSION}" | tee -a "${GITHUB_ENV}"
           echo "COMMIT_SHA=$GITHUB_SHA" | tee -a "${GITHUB_ENV}"
-          echo "IMAGE_TAG=${{ secrets.REGISTRY_URL }}/lambda:lambda-test-${TAG}" | tee -a "${GITHUB_ENV}"
-          echo "IMAGE_SOURCE_URL=https://github.com/weni-ai/lambda-test" | tee -a "${GITHUB_ENV}"
+          echo "IMAGE_TAG=${{ secrets.REGISTRY_URL }}/lambda:${APPLICATION_NAME}-${TAG}" | tee -a "${GITHUB_ENV}"
+          echo "IMAGE_SOURCE_URL=https://github.com/weni-ai/${APPLICATION_NAME}" | tee -a "${GITHUB_ENV}"
           echo "TERRAFORM_REPOSITORY=weni-ai/infra-weni-lambda" | tee -a "${GITHUB_ENV}"
           #echo "MANIFESTS_PATCH_TARGET=deployment.json" | tee -a "${GITHUB_ENV}"
 
