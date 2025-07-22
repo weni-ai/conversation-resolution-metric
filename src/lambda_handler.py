@@ -1,7 +1,11 @@
 import json
 from openai import OpenAI
+import sys
+from get_parameter import get_parameter
 
-client = OpenAI()
+OPENAI_API_KEY=get_parameter('OPENAI_API_KEY')
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def send_message(prompt):
     response = client.chat.completions.create(
