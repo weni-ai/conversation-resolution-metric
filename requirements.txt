@@ -1,2 +1,4 @@
 awslambdaric
 urllib3
+openai
+boto3
