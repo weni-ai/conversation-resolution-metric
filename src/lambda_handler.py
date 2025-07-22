@@ -17,11 +17,12 @@ def lambda_handler(event, context): # pylint: disable=unused-argument
 	used only as examples.
 	'''
 	### Load Parameter Store values from extension
-	parameter_value=get_parameter(
-		'SuperSecret'
+	OPENAI_API_KEY=get_parameter(
+		'OPENAI_API_KEY'
 	)
-	print(f'Found config values: {parameter_value}')
+	#print(f'Found config values: {parameter_value}')
 
-	return f'Hello from AWS Lambda using Python {sys.version}!!! {parameter_value}'
+	#return f'Hello from AWS Lambda using Python {sys.version}!!! {parameter_value}'
+	return f'Hello from AWS Lambda using Python {sys.version}!!!'
 
 # vim: nu ts=4 fdm=indent noet ft=python:
