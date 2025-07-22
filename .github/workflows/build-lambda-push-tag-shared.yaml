@@ -29,7 +29,7 @@ jobs:
           fi
           echo "TAG=$TAG" | tee -a "${GITHUB_ENV}"
           VERSION="${TAG}"
-          APPLICATION_NAME=conversation-resolution-metric"
+          APPLICATION_NAME="conversation-resolution-metric"
           echo "APPLICATION_NAME=${APPLICATION_NAME}" | tee -a "${GITHUB_ENV}"
           echo "VERSION=${VERSION}" | tee -a "${GITHUB_ENV}"
           echo "COMMIT_SHA=$GITHUB_SHA" | tee -a "${GITHUB_ENV}"
