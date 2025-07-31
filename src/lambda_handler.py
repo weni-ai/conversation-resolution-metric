@@ -19,6 +19,8 @@ def send_message(prompt, model):
     return response.choices[0].message.content.strip()
 
 def send_message_parse(prompt, model):
+    OPENAI_API_KEY=get_parameter('OPENAI_API_KEY')
+    client = OpenAI(api_key=OPENAI_API_KEY)
     completion = client.chat.completions.parse(
         model=model,
         messages=[
