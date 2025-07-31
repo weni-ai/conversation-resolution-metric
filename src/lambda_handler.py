@@ -64,11 +64,16 @@ def classify_text(text, model):
 
     return send_message_parse(prompt, model)
 
+def format_conversation_messages(conversation_dict):
+    messages = conversation_dict.get("messages", [])
+    formatted = "\n".join(f'{m["sender"]}: {m["content"]}' for m in messages)
+    return formatted
+
 def lambda_handler(event, context):
-    input_text = event.get("conversation", "")
+    conversation_data = event.get("conversation", "")
     model = event.get("model", "gpt-4.1-nano")
-    
-    if not input_text:
+
+    if not conversation_data:
         return {
             'statusCode': 400,
             'body': {
@@ -77,6 +82,13 @@ def lambda_handler(event, context):
         }
 
     try:
+        # Se for dicionário estruturado com messages
+        if isinstance(conversation_data, dict) and "messages" in conversation_data:
+            input_text = format_conversation_messages(conversation_data)
+        else:
+            # Se já vier como string simples (modo legado)
+            input_text = conversation_data
+
         response = classify_text(input_text, model)
         classification = response.get("conversation_resolution", "")
         return {
