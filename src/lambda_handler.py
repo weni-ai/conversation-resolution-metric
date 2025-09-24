@@ -47,17 +47,20 @@ def send_message_parse(prompt, model):
     return response_dict
 
 def classify_text(text, model):
-    prompt = f'''Classify this conversation as "resolved" or "unresolved". 
+    prompt = f'''Classify as "resolved" or "unresolved" based on AGENT performance only.
 
-    Mark as "unresolved" ONLY if:
-    - Agent denies to answer, gets confused, or misunderstands the user's request
-    - Agent lacks conversational skills/knowledge and fails to properly redirect (excluding legitimate human handoff attempts)
-    - Agent provides partial help but fails to address the user's core problem
-    - User demonstrates unhappiness with agent's responses and keeps repeating the same request
+    "unresolved" ONLY if agent:
+    - Refuses help, gets confused, or misunderstands user request
+    - Provides wrong information or fails to guide properly
+    - Ignores user feedback about persistent problems
 
-    Everything else should be considered "resolved".
+    "resolved" if agent provides helpful service, even when:
+    - User doesn't follow instructions or abandons conversation
+    - User is uncooperative but agent maintains professional guidance
 
-    Complete conversation: {text}
+    Focus on agent competence, not conversation outcome.
+
+    Conversation: {text}
 
     Classification:'''
 
