@@ -50,12 +50,10 @@ def classify_text(text, model):
     prompt = f'''Classify this conversation as "resolved" or "unresolved". 
 
     Mark as "unresolved" ONLY if:
-    - User sends simple greetings without meaningful questions
-    - Agent denies to answer or gets confused
-    - Agent lacks capabilities/knowledge to help AND fails to properly redirect the user
-    - Agent redirects due to operational limitations without solving the problem
+    - Agent denies to answer, gets confused, or misunderstands the user's request
+    - Agent lacks conversational skills/knowledge and fails to properly redirect (excluding legitimate human handoff attempts)
     - Agent provides partial help but fails to address the user's core problem
-    - Agent misunderstands the user's request or provides irrelevant responses
+    - User demonstrates unhappiness with agent's responses and keeps repeating the same request
 
     Everything else should be considered "resolved".
 
