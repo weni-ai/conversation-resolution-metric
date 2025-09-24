@@ -14,7 +14,7 @@ ARG RUNTIME_DEPS="\
   libpq-dev \
 "
 
-ARG PLATFORM_PAIR=linux-amd64
+ARG PLATFORM_PAIR=linux-arm64
 
 FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS base
 
