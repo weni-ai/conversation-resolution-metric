@@ -1,4 +1,4 @@
-name: Build Lambda in Shared (Push Tag)
+name: Build, push and deploy
 
 on:
   push:
@@ -8,130 +8,36 @@ on:
       - '*.*.*'
 
 jobs:
-  docker:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      repository_name: ${{ steps.setup.outputs.repository_name }}
     steps:
-      - name: Set variables
+      - name: Setup outputs
+        id: setup
         run: |
-          TAG="$( echo "${GITHUB_REF}" | cut -d'/' -f3 )"
-          if grep -qs -e '^.*.*-develop' <<< "${TAG}" ; then
-            echo "Found environment: DEVELOP - ${TAG}"
-            echo "ENVIRONMENT=develop" | tee "${GITHUB_ENV}"
-          elif grep -qs -e '^.*.*-staging' <<< "${TAG}" ; then
-            echo "Found environment: STAGING - ${TAG}"
-            echo "ENVIRONMENT=staging" | tee -a "${GITHUB_ENV}"
-          elif grep -qs -e '^.*.*' <<< "${TAG}" ; then
-            echo "No environment found, assuming: PRODUCTION - ${TAG}"
-            echo "ENVIRONMENT=production" | tee -a "${GITHUB_ENV}"
-          else
-            echo 'Not a valid tag. Skipping...'
-            exit 1
-          fi
-          echo "TAG=$TAG" | tee -a "${GITHUB_ENV}"
-          VERSION="${TAG}"
-          APPLICATION_NAME="conversation-resolution-metric"
-          echo "APPLICATION_NAME=${APPLICATION_NAME}" | tee -a "${GITHUB_ENV}"
-          echo "VERSION=${VERSION}" | tee -a "${GITHUB_ENV}"
-          echo "COMMIT_SHA=$GITHUB_SHA" | tee -a "${GITHUB_ENV}"
-          echo "IMAGE_TAG=${{ secrets.REGISTRY_URL }}/lambda:${APPLICATION_NAME}-${TAG}" | tee -a "${GITHUB_ENV}"
-          echo "IMAGE_SOURCE_URL=https://github.com/weni-ai/${APPLICATION_NAME}" | tee -a "${GITHUB_ENV}"
-          echo "TERRAFORM_REPOSITORY=weni-ai/infra-weni-lambda" | tee -a "${GITHUB_ENV}"
-          #echo "MANIFESTS_PATCH_TARGET=deployment.json" | tee -a "${GITHUB_ENV}"
+          {
+            echo "repository_name=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}"
+          } | tee -a "${GITHUB_OUTPUT}"
 
-      - name: Check out the repo
-        uses: actions/checkout@v4
-        with:
-          ref: "${{env.GITHUB_SHA}}"
-          # On non dispatch build not need the repo
-          #repository: Ilhasoft/weni-engine
+          {
+            echo "### Workflow Outputs"
+            echo "| Variable        | Value           |"
+            echo "| --------------- | --------------- |"
+            echo "| repository_name | Repository name |"
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+  call-workflow:
+    uses: weni-ai/actions-workflows/.github/workflows/reusable-workflow.yaml@main
+    needs:
+      - setup
+    with:
+      deploy_type: 'terraform'
+      image_repository: 'lambda'
+      #target_application: "lambda-test lambda-test2"
+      target_application: ${{ needs.setup.outputs.repository_name }}
+      image_tag_prefix: ${{ needs.setup.outputs.repository_name }}-
+      target_repository: 'weni-ai/infra-weni-lambda'
+    secrets: inherit
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to ECR
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}       # Credentials used to push image to ECR repository
-          password: ${{ secrets.REGISTRY_TOKEN }}
-
-      - name: Build and push - Lambda Image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          provenance: false
-          labels: |
-            tag=${{env.TAG}}
-            commit=${{env.COMMIT_SHA}}
-            repository=${{env.IMAGE_SOURCE_URL}}
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{env.IMAGE_TAG}}
-          no-cache: true
-
-      - name: Check out Terraform
-        # Now, checkout in kubernetes manifests to update image in deployments patches
-        uses: actions/checkout@master
-        with:
-          ref: main
-          repository: "${{ env.TERRAFORM_REPOSITORY }}"
-          token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-          path: ./infra-weni/
-          # Its uses other path to not mix with source code repository used to build
-
-      - name: Update image on deployment
-        run: |
-          set -xv
-          which jq > /dev/null 2>&1 || ( sudo apt update ; sudo apt install -y jq )
-          # Dep: coreutils
-          verlte() {
-            [ "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
-          }
-          verlt(){
-            [ "$1" = "$2" ] && return 1 || verlte $1 $2
-          }
-
-          ENVIROMENT_ONE=$(
-            yq '.workspaces | keys | .[] ' -r < infra-weni/one.yaml \
-              | grep ${{env.ENVIRONMENT}} \
-              | head -n1
-          )
-
-          OLD_IMAGE=$(
-            cat "infra-weni/one.yaml" \
-              | yq '.workspaces.'"${ENVIROMENT_ONE}"'.lambda."'"${APPLICATION_NAME}"'".image' -r
-          )
-          OLD_VERSION=$(
-            echo "${OLD_IMAGE}" \
-              | sed s'/^.*[v:-]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/'g \
-              | head -n1
-          )
-          echo "Old image to replace: ${OLD_IMAGE}"
-
-          echo "Old image version to compare: ${OLD_VERSION}<=${{env.VERSION}}"
-          if verlte "${OLD_VERSION}" "${VERSION}" || [[ ! "${OLD_VERSION}" =~ [0-9]+\.[0-9]+\.[0-9]+ ]] ; then
-            echo 'New configurations:'
-            new_configuration=$(
-              yq \
-                '.workspaces."'"${ENVIROMENT_ONE}"'".lambda."${{env.APPLICATION_NAME}}".image = "'"${{env.IMAGE_TAG}}"'"' \
-                --output-format=yaml < infra-weni/one.yaml
-            )
-            echo "${new_configuration}"
-            echo "${new_configuration}" > "infra-weni/one.yaml"
-          else
-            echo "Version in file is greater than build, skipping update yaml"
-          fi
-
-      - name: Commit & Push changes
-        # Once made a change, commit new configuration
-        uses: actions-js/push@master
-        with:
-          github_token: "${{ secrets.DEVOPS_GITHUB_PERMANENT_TOKEN }}"
-          repository: "${{ env.TERRAFORM_REPOSITORY }}"
-          directory: ./infra-weni/
-          branch: main
-          message: "From Lambda Build (Push Tag ${{ env.ENVIRONMENT }})"
+# vim: nu ts=2 fdm=indent et ft=yaml shiftwidth=2 softtabstop=2:
