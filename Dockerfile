@@ -14,11 +14,16 @@ ARG RUNTIME_DEPS="\
   libpq-dev \
 "
 
-FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} as base
+ARG PLATFORM_PAIR=linux-amd64
+
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS base
 
 # Stage: base# FOLDUP
 ARG APP_UID=1999
 ARG APP_GID=1999
+
+ARG BUILD_DEPS
+ARG RUNTIME_DEPS
 
 ENV PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
@@ -29,7 +34,6 @@ ENV PYTHONUNBUFFERED=1 \
   APP_GROUP=app_group \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PATH="/install/bin:${PATH}" \
-  APP_PORT=${APP_PORT} \
   APP_NAME="appname" \
   RUNTIME_DEPS=${RUNTIME_DEPS} \
   BUILD_DEPS=${BUILD_DEPS} \
@@ -44,23 +48,26 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloa
 
 # UNFOLD
 
-FROM base as build
+FROM base AS build
 
 # Stage: build# FOLDUP
 
 ARG BUILD_DEPS
+ARG PLATFORM_PAIR
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update \
   && apt-get install --no-install-recommends --no-install-suggests -y ${BUILD_DEPS}
 
-COPY requirements.txt extensions/AWS-Parameters-and-Secrets-Lambda-Extension-17.zip /tmp
+# aws lambda get-layer-version-by-arn --arn arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension:17 --region us-east-1 --query 'Content.Location' --output text
+# aws lambda get-layer-version-by-arn --arn arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:17 --region us-east-1 --query 'Content.Location' --output text
+COPY requirements.txt extensions/AWS-Parameters-and-Secrets-Lambda-Extension-17-${PLATFORM_PAIR}.zip /tmp
 
 RUN --mount=type=cache,mode=0755,target=/pip_cache,id=pip \
   pip install --cache-dir /pip_cache --prefix=/install -r /tmp/requirements.txt \
-  && unzip /tmp/AWS-Parameters-and-Secrets-Lambda-Extension-17.zip -d /opt \
-  && rm /tmp/AWS-Parameters-and-Secrets-Lambda-Extension-17.zip /tmp/requirements.txt
+  && unzip /tmp/AWS-Parameters-and-Secrets-Lambda-Extension-17-${PLATFORM_PAIR}.zip -d /opt \
+  && rm /tmp/AWS-Parameters-and-Secrets-Lambda-Extension-17-${PLATFORM_PAIR}.zip /tmp/requirements.txt
 
 # UNFOLD
 
