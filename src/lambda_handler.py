@@ -26,7 +26,7 @@ def send_message_parse(prompt, model):
         messages=[
             {
                 "role": "system",
-                "content": "Você é um classificador especializado em analisar conversas."
+                "content": "You are a specialized classifier for analyzing conversations."
             },
             {
                 "role": "user", 
@@ -47,22 +47,23 @@ def send_message_parse(prompt, model):
     return response_dict
 
 def classify_text(text, model):
-    prompt = f'''Você é um especialista em analisar se uma conversa teve o problema do usuário resolvido ou não, ou se o usuário abandonou a conversa, ou seja você classifica entre "resolved" e "unresolved", faça isso olhando para a conversa toda e seguindo as intruções abaixo.
+    prompt = f'''Classify this conversation as "resolved" or "unresolved". 
 
-    instruções:
-      - APENAS CLASSIFIQUE ENTRE "resolved" e "unresolved", NADA A MAIS QUE ISSO
-      - "unresolved" É QUANDO O chatbot confirma que não vai conseguir resolver a situação do cliente ou que o usuário NÃO CONTINUOU A CONVERSA e saiu SEM RESOLVER O PROBLEMA.
-      - "resolved" É QUANDO O CHATBOT RESOLVE TODOS OS  PROBLEMAS.
-      - NÃO EXPLIQUE O PORQUE OU COMO FEZ A TAREFA APENAS FAÇA.
-      - SEU OUTPUT DEVE SER APENAS OU A TAG DE "resolved" OU A TAG DE "unresolved", NADA  MAIS.
+    Mark as "unresolved" ONLY if:
+    - User sends simple greetings without meaningful questions
+    - Agent denies to answer or gets confused
+    - Agent lacks capabilities/knowledge to help AND fails to properly redirect the user
+    - Agent redirects due to operational limitations without solving the problem
+    - Agent provides partial help but fails to address the user's core problem
+    - Agent misunderstands the user's request or provides irrelevant responses
 
-      Conversa completa: {text}
+    Everything else should be considered "resolved".
 
+    Complete conversation: {text}
 
-      OUTPUT:
-    '''
+    Classification:'''
 
-    print(f"Prompt: {prompt}")
+    # print(f"Prompt: {prompt}")
 
     return send_message_parse(prompt, model)
 
