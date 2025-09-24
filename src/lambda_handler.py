@@ -26,7 +26,7 @@ def send_message_parse(prompt, model):
         messages=[
             {
                 "role": "system",
-                "content": "Você é um classificador especializado em analisar conversas."
+                "content": "You are a specialized classifier for analyzing conversations."
             },
             {
                 "role": "user", 
@@ -47,22 +47,24 @@ def send_message_parse(prompt, model):
     return response_dict
 
 def classify_text(text, model):
-    prompt = f'''Você é um especialista em analisar se uma conversa teve o problema do usuário resolvido ou não, ou se o usuário abandonou a conversa, ou seja você classifica entre "resolved" e "unresolved", faça isso olhando para a conversa toda e seguindo as intruções abaixo.
+    prompt = f'''Classify as "resolved" or "unresolved" based on AGENT performance only.
 
-    instruções:
-      - APENAS CLASSIFIQUE ENTRE "resolved" e "unresolved", NADA A MAIS QUE ISSO
-      - "unresolved" É QUANDO O chatbot confirma que não vai conseguir resolver a situação do cliente ou que o usuário NÃO CONTINUOU A CONVERSA e saiu SEM RESOLVER O PROBLEMA.
-      - "resolved" É QUANDO O CHATBOT RESOLVE TODOS OS  PROBLEMAS.
-      - NÃO EXPLIQUE O PORQUE OU COMO FEZ A TAREFA APENAS FAÇA.
-      - SEU OUTPUT DEVE SER APENAS OU A TAG DE "resolved" OU A TAG DE "unresolved", NADA  MAIS.
+    "unresolved" ONLY if agent:
+    - Refuses help, gets confused, or misunderstands user request
+    - Provides wrong information or fails to guide properly
+    - Ignores user feedback about persistent problems
 
-      Conversa completa: {text}
+    "resolved" if agent provides helpful service, even when:
+    - User doesn't follow instructions or abandons conversation
+    - User is uncooperative but agent maintains professional guidance
 
+    Focus on agent competence, not conversation outcome.
 
-      OUTPUT:
-    '''
+    Conversation: {text}
 
-    print(f"Prompt: {prompt}")
+    Classification:'''
+
+    # print(f"Prompt: {prompt}")
 
     return send_message_parse(prompt, model)
 
