@@ -53,6 +53,8 @@ def classify_text(text, model):
     - Refuses help, gets confused, or misunderstands user request
     - Provides wrong information or fails to guide properly
     - Ignores user feedback about persistent problems
+    - Conversation is only greetings or things outside agent scope
+    - Agent lacks capability, knowledge, or actions to help user
 
     "resolved" if agent provides helpful service, even when:
     - User doesn't follow instructions or abandons conversation
